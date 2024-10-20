@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Fitur 1: Input Dataset ke Sistem
 st.title('Aplikasi Tren Inflasi Global')
@@ -26,7 +27,7 @@ if uploaded_file is not None:
     # Gabungkan kembali dengan kolom non-numerik
     data[non_numeric_columns] = data[non_numeric_columns]
     data.update(numeric_data)
-    
+
      # Tampilkan 10 baris pertama secara default
     st.subheader("Data yang Diunggah (10 Baris Pertama)")
     st.write(data.head(10))
@@ -34,13 +35,29 @@ if uploaded_file is not None:
     # Tombol untuk menampilkan semua baris
     if st.button("Tampilkan Semua Baris"):
         st.write(data)
-
-
+    
+    # Pilih Rentang Tahun
+    all_years = [int(col) for col in data.columns if col.isdigit()]  # Ambil semua tahun dari kolom dataset
+    min_year = min(all_years)
+    max_year = max(all_years)
+    
+    selected_years = st.slider(
+        "Pilih rentang tahun",
+        min_value=min_year,
+        max_value=max_year,
+        value=(min_year, max_year),
+        step=1
+    )
+    
+    # Filter data berdasarkan tahun yang dipilih
+    selected_columns = ['country_name'] + [str(year) for year in range(selected_years[0], selected_years[1] + 1)]
+    filtered_data = data[selected_columns]
+    
     # Fitur 3: Analisis Perbandingan Negara
     st.subheader("Analisis Perbandingan Negara")
 
     # Pilih 2-4 negara untuk dibandingkan
-    countries = data['country_name'].unique()
+    countries = filtered_data['country_name'].unique()
     selected_countries = st.multiselect("Pilih 2 hingga 4 negara untuk dibandingkan", countries, default=countries[:2])
     
     if len(selected_countries) < 2:
@@ -49,7 +66,7 @@ if uploaded_file is not None:
         st.error("Pilih maksimal 4 negara.")
     else:
         # Memfilter data untuk negara yang dipilih
-        filtered_data = data[data['country_name'].isin(selected_countries)]
+        filtered_data = filtered_data[filtered_data['country_name'].isin(selected_countries)]
         
         # Memutar data agar lebih mudah diproses untuk plotly
         melted_data = filtered_data.melt(id_vars=['country_name'], var_name='Tahun', value_name='Inflation Rate')
@@ -109,3 +126,30 @@ if uploaded_file is not None:
 
         # Tampilkan grafik Bar Chart
         st.plotly_chart(fig2, use_container_width=True)
+
+        # Chart 3: Heatmap Inflasi Antarnegara
+        st.subheader("Heatmap Inflasi Antar Negara")
+        
+        # Data untuk heatmap (pivot untuk mendapatkan format yang sesuai)
+        heatmap_data = filtered_data.set_index('country_name')
+        heatmap_data = heatmap_data.loc[selected_countries]
+        
+        # Membuat heatmap menggunakan plotly
+        fig3 = go.Figure(
+            data=go.Heatmap(
+                z=heatmap_data.values,
+                x=heatmap_data.columns,
+                y=heatmap_data.index,
+                colorscale='Viridis'
+            )
+        )
+        fig3.update_layout(
+            title="Heatmap Tren Inflasi Antar Negara",
+            xaxis_title="Tahun",
+            yaxis_title="Negara",
+            font=dict(size=14),
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+        
+        # Tampilkan heatmap
+        st.plotly_chart(fig3, use_container_width=True)
