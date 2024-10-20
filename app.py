@@ -27,6 +27,15 @@ if uploaded_file is not None:
     data[non_numeric_columns] = data[non_numeric_columns]
     data.update(numeric_data)
     
+     # Tampilkan 10 baris pertama secara default
+    st.subheader("Data yang Diunggah (10 Baris Pertama)")
+    st.write(data.head(10))
+    
+    # Tombol untuk menampilkan semua baris
+    if st.button("Tampilkan Semua Baris"):
+        st.write(data)
+
+
     # Fitur 3: Analisis Perbandingan Negara
     st.subheader("Analisis Perbandingan Negara")
 
@@ -71,7 +80,6 @@ if uploaded_file is not None:
         st.plotly_chart(fig1, use_container_width=True)
 
         # Chart 2: Rata-Rata Inflasi dengan Bar Chart
-        st.subheader("Rata-Rata Inflasi dari Negara yang Dipilih")
         avg_inflation = filtered_data.set_index('country_name').mean(axis=1).reset_index()
         avg_inflation.columns = ['country_name', 'Average Inflation']
 
