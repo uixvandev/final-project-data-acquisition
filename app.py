@@ -1,155 +1,97 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Fitur 1: Input Dataset ke Sistem
-st.title('Aplikasi Tren Inflasi Global')
+# App title
+st.title("Global Inflation Data Analysis")
 
-uploaded_file = st.file_uploader("Unggah file CSV", type="csv")
-if uploaded_file is not None:
-    # Membaca data
+# Data Upload
+st.header("1. Upload or View Dataset")
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+if uploaded_file:
     data = pd.read_csv(uploaded_file)
-    
-    # Fitur 2: Preprocess Data
-    st.subheader("Preprocessing Data")
-    
-    # Menghapus kolom yang tidak diperlukan
-    data = data.drop(columns=["indicator_name"])
-    
-    # Pisahkan kolom non-numerik dan numerik
-    non_numeric_columns = ['country_name']
-    numeric_data = data.drop(columns=non_numeric_columns).apply(pd.to_numeric, errors='coerce')
-    
-    # Interpolasi pada data numerik
-    numeric_data = numeric_data.interpolate(method='linear', axis=1)
-    
-    # Gabungkan kembali dengan kolom non-numerik
-    data[non_numeric_columns] = data[non_numeric_columns]
-    data.update(numeric_data)
+    st.write("Dataset Preview:")
+    st.dataframe(data)
+else:
+    st.warning("Please upload a CSV file to proceed.")
+    st.stop()
 
-     # Tampilkan 10 baris pertama secara default
-    st.subheader("Data yang Diunggah (10 Baris Pertama)")
-    st.write(data.head(10))
-    
-    # Tombol untuk menampilkan semua baris
-    if st.button("Tampilkan Semua Baris"):
-        st.write(data)
-    
-    # Pilih Rentang Tahun
-    all_years = [int(col) for col in data.columns if col.isdigit()]  # Ambil semua tahun dari kolom dataset
-    min_year = min(all_years)
-    max_year = max(all_years)
-    
-    selected_years = st.slider(
-        "Pilih rentang tahun",
-        min_value=min_year,
-        max_value=max_year,
-        value=(min_year, max_year),
-        step=1
+# Data Preprocessing
+st.header("2. Data Preprocessing")
+st.write("Handling Missing Values")
+if st.checkbox("Fill Missing Values"):
+    fill_method = st.radio("Choose fill method:", ["Mean", "Median", "Drop rows"])
+    if fill_method == "Mean":
+        data = data.fillna(data.mean(numeric_only=True))
+    elif fill_method == "Median":
+        data = data.fillna(data.median(numeric_only=True))
+    elif fill_method == "Drop rows":
+        data = data.dropna()
+    st.write("Data after preprocessing:")
+    st.dataframe(data)
+
+# Select Year for Analysis
+st.header("3. Analyze Data")
+year_columns = [col for col in data.columns if col.isdigit()]
+selected_years = st.multiselect("Select year(s) for analysis:", year_columns)
+if not selected_years:
+    st.warning("Please select at least one year.")
+    st.stop()
+
+# Filter data by selected years
+analysis_data = data[["country_name"] + selected_years].dropna()
+st.write("Filtered data for selected years:")
+st.dataframe(analysis_data)
+
+# Clustering Analysis
+st.subheader("Clustering Analysis")
+n_clusters = st.slider("Number of clusters:", 2, 10, 3)
+if st.button("Run Clustering"):
+    clustering_model = KMeans(n_clusters=n_clusters, random_state=42)
+    cluster_labels = clustering_model.fit_predict(analysis_data[selected_years])
+    analysis_data["Cluster"] = cluster_labels
+
+    st.write("Clustered Data:")
+    st.dataframe(analysis_data)
+
+    # Visualize Clusters
+    st.write("Cluster Visualization")
+    plt.figure(figsize=(10, 6))
+    for cluster in range(n_clusters):
+        cluster_data = analysis_data[analysis_data["Cluster"] == cluster]
+        plt.scatter(
+            cluster_data[selected_years[0]],
+            cluster_data[selected_years[1]],
+            label=f"Cluster {cluster}"
+        )
+    plt.title("Clusters of Countries")
+    plt.xlabel(selected_years[0])
+    plt.ylabel(selected_years[1])
+    plt.legend()
+    st.pyplot(plt)
+
+# Visualization
+st.header("4. Data Visualization")
+if st.checkbox("Show Heatmap"):
+    st.write("Heatmap of Inflation Rates")
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(
+        analysis_data[selected_years].set_index(analysis_data["country_name"]),
+        cmap="coolwarm",
+        annot=True,
+        fmt=".2f"
     )
-    
-    # Filter data berdasarkan tahun yang dipilih
-    selected_columns = ['country_name'] + [str(year) for year in range(selected_years[0], selected_years[1] + 1)]
-    filtered_data = data[selected_columns]
-    
-    # Fitur 3: Analisis Perbandingan Negara
-    st.subheader("Analisis Perbandingan Negara")
+    st.pyplot(plt)
 
-    # Pilih 2-4 negara untuk dibandingkan
-    countries = filtered_data['country_name'].unique()
-    selected_countries = st.multiselect("Pilih 2 hingga 4 negara untuk dibandingkan", countries, default=countries[:2])
-    
-    if len(selected_countries) < 2:
-        st.error("Pilih minimal 2 negara untuk perbandingan.")
-    elif len(selected_countries) > 4:
-        st.error("Pilih maksimal 4 negara.")
-    else:
-        # Memfilter data untuk negara yang dipilih
-        filtered_data = filtered_data[filtered_data['country_name'].isin(selected_countries)]
-        
-        # Memutar data agar lebih mudah diproses untuk plotly
-        melted_data = filtered_data.melt(id_vars=['country_name'], var_name='Tahun', value_name='Inflation Rate')
-        
-        # Chart 1: Perbandingan Inflasi dengan Line Chart
-        st.subheader("Perbandingan Tren Inflasi antara Negara")
-        fig1 = px.line(
-            melted_data, 
-            x='Tahun', 
-            y='Inflation Rate', 
-            color='country_name', 
-            title=f"Perbandingan Inflasi antara {', '.join(selected_countries)}",
-            markers=True,
-            template="plotly_white"
-        )
-        fig1.update_layout(
-            title_font=dict(size=24),
-            xaxis_title="Tahun",
-            yaxis_title="Tingkat Inflasi (%)",
-            font=dict(size=14),
-            xaxis_tickangle=-45,
-            plot_bgcolor='rgba(0,0,0,0)',  # Background putih yang bersih
-            hovermode="x unified",  # Tampilan hover yang jelas
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
-        
-        # Tampilkan grafik Line Chart
-        st.plotly_chart(fig1, use_container_width=True)
-
-        # Chart 2: Rata-Rata Inflasi dengan Bar Chart
-        avg_inflation = filtered_data.set_index('country_name').mean(axis=1).reset_index()
-        avg_inflation.columns = ['country_name', 'Average Inflation']
-
-        # Ambil warna dari Line Chart (plotly express biasanya mengikuti urutan warna secara default)
-        color_map = {trace['name']: trace['line']['color'] for trace in fig1['data']}
-        
-        # Buat Bar Chart dengan warna yang sama seperti pada Line Chart
-        fig2 = px.bar(
-            avg_inflation,
-            x='country_name',
-            y='Average Inflation',
-            title="Rata-Rata Inflasi Negara yang Dipilih",
-            labels={'country_name': 'Negara', 'Average Inflation': 'Rata-Rata Inflasi (%)'},
-            template="plotly_white",
-            color='country_name',  # Gunakan kategori negara untuk memberi warna
-            color_discrete_map=color_map  # Terapkan skema warna yang sama
-        )
-        
-        fig2.update_layout(
-            title_font=dict(size=24),
-            xaxis_title="Negara",
-            yaxis_title="Rata-Rata Inflasi (%)",
-            font=dict(size=14),
-            plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
-
-        # Tampilkan grafik Bar Chart
-        st.plotly_chart(fig2, use_container_width=True)
-
-        # Chart 3: Heatmap Inflasi Antarnegara
-        st.subheader("Heatmap Inflasi Antar Negara")
-        
-        # Data untuk heatmap (pivot untuk mendapatkan format yang sesuai)
-        heatmap_data = filtered_data.set_index('country_name')
-        heatmap_data = heatmap_data.loc[selected_countries]
-        
-        # Membuat heatmap menggunakan plotly
-        fig3 = go.Figure(
-            data=go.Heatmap(
-                z=heatmap_data.values,
-                x=heatmap_data.columns,
-                y=heatmap_data.index,
-                colorscale='Viridis'
-            )
-        )
-        fig3.update_layout(
-            title="Heatmap Tren Inflasi Antar Negara",
-            xaxis_title="Tahun",
-            yaxis_title="Negara",
-            font=dict(size=14),
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
-        
-        # Tampilkan heatmap
-        st.plotly_chart(fig3, use_container_width=True)
+if st.checkbox("Show Line Chart"):
+    st.write("Line Chart of Inflation Rates Over Time")
+    for country in analysis_data["country_name"].unique():
+        country_data = data[data["country_name"] == country]
+        plt.plot(year_columns, country_data[year_columns].values.flatten(), label=country)
+    plt.legend()
+    plt.title("Inflation Trends")
+    plt.xlabel("Year")
+    plt.ylabel("Inflation Rate")
+    st.pyplot(plt)
