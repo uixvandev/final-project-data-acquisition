@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
+import plotly.express as px
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 # App title
 st.title("Global Inflation Data Analysis")
@@ -48,29 +49,31 @@ st.dataframe(analysis_data)
 # Clustering Analysis
 st.subheader("Clustering Analysis")
 n_clusters = st.slider("Number of clusters:", 2, 10, 3)
+
 if st.button("Run Clustering"):
-    clustering_model = KMeans(n_clusters=n_clusters, random_state=42)
-    cluster_labels = clustering_model.fit_predict(analysis_data[selected_years])
-    analysis_data["Cluster"] = cluster_labels
+    if len(selected_years) < 2:
+        st.error("Please select at least two years for clustering analysis.")
+    else:
+        clustering_model = KMeans(n_clusters=n_clusters, random_state=42)
+        cluster_labels = clustering_model.fit_predict(analysis_data[selected_years])
+        analysis_data["Cluster"] = cluster_labels
 
-    st.write("Clustered Data:")
-    st.dataframe(analysis_data)
+        st.write("Clustered Data:")
+        st.dataframe(analysis_data)
 
-    # Visualize Clusters
-    st.write("Cluster Visualization")
-    plt.figure(figsize=(10, 6))
-    for cluster in range(n_clusters):
-        cluster_data = analysis_data[analysis_data["Cluster"] == cluster]
-        plt.scatter(
-            cluster_data[selected_years[0]],
-            cluster_data[selected_years[1]],
-            label=f"Cluster {cluster}"
+        # Visualize Clusters with Plotly
+        st.write("Cluster Visualization (Interactive)")
+        fig = px.scatter(
+            analysis_data,
+            x=selected_years[0],
+            y=selected_years[1],
+            color="Cluster",
+            hover_data={"country_name": True, "Cluster": True},
+            title="Clusters of Countries",
+            labels={selected_years[0]: f"Inflation in {selected_years[0]}", selected_years[1]: f"Inflation in {selected_years[1]}"},
+            template="plotly"
         )
-    plt.title("Clusters of Countries")
-    plt.xlabel(selected_years[0])
-    plt.ylabel(selected_years[1])
-    plt.legend()
-    st.pyplot(plt)
+        st.plotly_chart(fig)
 
 # Visualization
 st.header("4. Data Visualization")
