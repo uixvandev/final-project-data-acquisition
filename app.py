@@ -6,11 +6,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # App title
-st.title("Global Inflation Data Analysis")
+st.title("Analisis Data Inflasi Global")
 
 # Data Upload
-st.header("1. Upload or View Dataset")
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+st.header("1. Upload Data")
+uploaded_file = st.file_uploader("Upload file CSV", type=["csv"])
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
     st.write("Dataset Preview:")
@@ -21,38 +21,38 @@ else:
 
 # Data Preprocessing
 st.header("2. Data Preprocessing")
-st.write("Handling Missing Values")
-if st.checkbox("Fill Missing Values"):
-    fill_method = st.radio("Choose fill method:", ["Mean", "Median", "Drop rows"])
+st.write("Handling nilai yang hilang")
+if st.checkbox("Isi nilai yang hilang"):
+    fill_method = st.radio("Pilih metode:", ["Mean", "Median", "Hapus baris"])
     if fill_method == "Mean":
         data = data.fillna(data.mean(numeric_only=True))
     elif fill_method == "Median":
         data = data.fillna(data.median(numeric_only=True))
-    elif fill_method == "Drop rows":
+    elif fill_method == "Hapus baris":
         data = data.dropna()
-    st.write("Data after preprocessing:")
+    st.write("Data setelah preprocessing:")
     st.dataframe(data)
 
 # Select Year for Analysis
-st.header("3. Analyze Data")
+st.header("3. Analisis Data")
 year_columns = [col for col in data.columns if col.isdigit()]
-selected_years = st.multiselect("Select year(s) for analysis:", year_columns)
+selected_years = st.multiselect("Pilih tahun untuk analisis:", year_columns)
 if not selected_years:
-    st.warning("Please select at least one year.")
+    st.warning("Pilih setidaknya 2 tahun!")
     st.stop()
 
 # Filter data by selected years
 analysis_data = data[["country_name"] + selected_years].dropna()
-st.write("Filtered data for selected years:")
+st.write("Data yang difilter untuk tahun yang dipilih")
 st.dataframe(analysis_data)
 
 # Clustering Analysis
-st.subheader("Clustering Analysis")
-n_clusters = st.slider("Number of clusters:", 2, 10, 3)
+st.subheader("Analisis Clustering")
+n_clusters = st.slider("Jumlah Cluster:", 2, 10, 3)
 
-if st.button("Run Clustering"):
+if st.button("Jalankan Clustering"):
     if len(selected_years) < 2:
-        st.error("Please select at least two years for clustering analysis.")
+        st.error("Pilih setidaknya 2 tahun untuk analisis pengelompokan!")
     else:
         clustering_model = KMeans(n_clusters=n_clusters, random_state=42)
         cluster_labels = clustering_model.fit_predict(analysis_data[selected_years])
@@ -62,7 +62,7 @@ if st.button("Run Clustering"):
         st.dataframe(analysis_data)
 
         # Visualize Clusters with Plotly
-        st.write("Cluster Visualization (Interactive)")
+        st.write("Cluster Visualization")
         fig = px.scatter(
             analysis_data,
             x=selected_years[0],
@@ -77,7 +77,7 @@ if st.button("Run Clustering"):
 
 # Visualization
 st.header("4. Data Visualization")
-if st.checkbox("Show Heatmap"):
+if st.checkbox("Tampilkan Heatmap"):
     st.write("Heatmap of Inflation Rates")
     plt.figure(figsize=(12, 8))
     sns.heatmap(
@@ -88,8 +88,8 @@ if st.checkbox("Show Heatmap"):
     )
     st.pyplot(plt)
 
-if st.checkbox("Show Line Chart"):
-    st.write("Line Chart of Inflation Rates Over Time")
+if st.checkbox("Tampilkan Line Chart"):
+    st.write("Line Chart Tingkat Inflasi dari Waktu ke Waktu")
     for country in analysis_data["country_name"].unique():
         country_data = data[data["country_name"] == country]
         plt.plot(year_columns, country_data[year_columns].values.flatten(), label=country)
