@@ -62,16 +62,6 @@ if st.button("Jalankan Clustering"):
         st.write("Clustered Data:")
         st.dataframe(analysis_data)
 
-        # Save clustered data as downloadable CSV
-        st.write("Download hasil clustering:")
-        csv = analysis_data.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download CSV",
-            data=csv,
-            file_name='clustered_data.csv',
-            mime='text/csv',
-        )
-
         # Visualize Clusters with Plotly
         st.write("Cluster Visualization")
         fig = px.scatter(
@@ -81,7 +71,7 @@ if st.button("Jalankan Clustering"):
             color="Cluster",
             hover_data={"country_name": True, "Cluster": True},
             title="Clusters of Countries",
-            labels={selected_years[0]: f"Inflation in {selected_years[0]}", selected_years[1]: f"Inflation in {selected_years[1]}"},
+            # labels={selected_years[0]: f"Inflation in {selected_years[0]}", selected_years[1]: f"Inflation in {selected_years[1]}"},
             template="plotly"
         )
         st.plotly_chart(fig)
