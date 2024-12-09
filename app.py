@@ -58,8 +58,19 @@ if st.button("Jalankan Clustering"):
         cluster_labels = clustering_model.fit_predict(analysis_data[selected_years])
         analysis_data["Cluster"] = cluster_labels
 
+        # Display clustered data
         st.write("Clustered Data:")
         st.dataframe(analysis_data)
+
+        # Save clustered data as downloadable CSV
+        st.write("Download hasil clustering:")
+        csv = analysis_data.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download CSV",
+            data=csv,
+            file_name='clustered_data.csv',
+            mime='text/csv',
+        )
 
         # Visualize Clusters with Plotly
         st.write("Cluster Visualization")
@@ -74,6 +85,31 @@ if st.button("Jalankan Clustering"):
             template="plotly"
         )
         st.plotly_chart(fig)
+
+# Elbow Method
+if st.checkbox("Tampilkan Elbow Method"):
+    st.write("Menghitung jumlah cluster optimal dengan Elbow Method...")
+    
+    # Define range for number of clusters
+    K = range(1, 11)  # Test clusters from 1 to 10
+    distortions = []  # To store the sum of squared distances (inertia)
+    
+    # Compute KMeans for each k
+    for k in K:
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        kmeans.fit(analysis_data[selected_years])
+        distortions.append(kmeans.inertia_)
+    
+    # Plotting the Elbow Curve
+    plt.figure(figsize=(10, 6))
+    plt.plot(K, distortions, 'bx-')
+    plt.xlabel("Jumlah Cluster (k)", fontsize=12)
+    plt.ylabel("Inertia", fontsize=12)
+    plt.title("Elbow Method untuk Menentukan Cluster Optimal", fontsize=14)
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.grid(True, linestyle='--', alpha=0.6)  # Add grid lines
+    st.pyplot(plt)
 
 # Visualization
 st.header("4. Data Visualization")
