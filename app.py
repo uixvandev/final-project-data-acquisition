@@ -79,22 +79,37 @@ if st.button("Jalankan Clustering"):
 st.header("4. Data Visualization")
 if st.checkbox("Tampilkan Heatmap"):
     st.write("Heatmap of Inflation Rates")
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(10, 6))
     sns.heatmap(
         analysis_data[selected_years].set_index(analysis_data["country_name"]),
         cmap="coolwarm",
         annot=True,
-        fmt=".2f"
+        fmt=".2f",
+        annot_kws={"size": 8},  # Set font size for annotations
+        linewidths=0.5,        # Add grid lines between cells
+        linecolor='gray',
     )
+    plt.title("Heatmap of Inflation Rates by Country", fontsize=14, pad=15)
+    plt.xlabel("Years", fontsize=12)
+    plt.ylabel("Country Name", fontsize=12)
+    plt.xticks(fontsize=10, rotation=45)  # Rotate x-axis labels for readability
+    plt.yticks(fontsize=10, rotation=0)
     st.pyplot(plt)
 
 if st.checkbox("Tampilkan Line Chart"):
     st.write("Line Chart Tingkat Inflasi dari Waktu ke Waktu")
     for country in analysis_data["country_name"].unique():
         country_data = data[data["country_name"] == country]
-        plt.plot(year_columns, country_data[year_columns].values.flatten(), label=country)
-    plt.legend()
-    plt.title("Inflation Trends")
-    plt.xlabel("Year")
-    plt.ylabel("Inflation Rate")
+        plt.plot(year_columns, country_data[year_columns].values.flatten(), label=country,
+        linewidth=1.5,  # Adjust line width
+            alpha=0.8 
+        )
+    plt.legend(loc="upper left", bbox_to_anchor=(1, 1), fontsize=10, title="Countries")
+    plt.title("Tren Tingkat Inflasi Berdasarkan Negara", fontsize=16, pad=15)
+    plt.xlabel("Tahun", fontsize=12)
+    plt.ylabel("Tingkat Inflasi (%)", fontsize=12)
+    plt.xticks(fontsize=10, rotation=45)  # Rotate x-axis labels for better readability
+    plt.yticks(fontsize=10)
+    plt.grid(True, linestyle='--', alpha=0.5)  # Add grid lines
+    plt.tight_layout() 
     st.pyplot(plt)
