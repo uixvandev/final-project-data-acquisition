@@ -71,7 +71,6 @@ if st.button("Jalankan Clustering"):
             color="Cluster",
             hover_data={"country_name": True, "Cluster": True},
             title="Clusters of Countries",
-            # labels={selected_years[0]: f"Inflation in {selected_years[0]}", selected_years[1]: f"Inflation in {selected_years[1]}"},
             template="plotly"
         )
         st.plotly_chart(fig)
@@ -80,16 +79,15 @@ if st.button("Jalankan Clustering"):
 if st.checkbox("Tampilkan Elbow Method"):
     st.write("Menghitung jumlah cluster optimal dengan Elbow Method...")
     
-    # Define range for number of clusters
-    K = range(1, 11)  # Test clusters from 1 to 10
-    distortions = []  # To store the sum of squared distances (inertia)
-    
-    # Compute KMeans for each k
+    # Gunakan nilai n_clusters dari slider sebagai batas atas perhitungan Elbow Method
+    K = range(1, n_clusters + 1)  
+    distortions = []  # Untuk menyimpan inertia
+
     for k in K:
         kmeans = KMeans(n_clusters=k, random_state=42)
         kmeans.fit(analysis_data[selected_years])
         distortions.append(kmeans.inertia_)
-    
+
     # Plotting the Elbow Curve
     plt.figure(figsize=(10, 6))
     plt.plot(K, distortions, 'bx-')
@@ -98,44 +96,61 @@ if st.checkbox("Tampilkan Elbow Method"):
     plt.title("Elbow Method untuk Menentukan Cluster Optimal", fontsize=14)
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
-    plt.grid(True, linestyle='--', alpha=0.6)  # Add grid lines
+    plt.grid(True, linestyle='--', alpha=0.6)
     st.pyplot(plt)
 
 # Visualization
 st.header("4. Data Visualization")
 if st.checkbox("Tampilkan Heatmap"):
     st.write("Heatmap of Inflation Rates")
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 10))
+    sns.set(font_scale=0.8)  # Mengatur skala font global
+    
+    heatmap_data = analysis_data[selected_years].set_index(analysis_data["country_name"])
+    
     sns.heatmap(
-        analysis_data[selected_years].set_index(analysis_data["country_name"]),
+        heatmap_data,
         cmap="coolwarm",
-        annot=True,
+        annot=True,             # Jika terlalu ramai, Anda dapat ubah ke False
         fmt=".2f",
-        annot_kws={"size": 8},  # Set font size for annotations
-        linewidths=0.5,        # Add grid lines between cells
+        annot_kws={"size": 6},
+        linewidths=0.5,
         linecolor='gray',
+        cbar_kws={"shrink": 0.5}
     )
-    plt.title("Heatmap of Inflation Rates by Country", fontsize=14, pad=15)
-    plt.xlabel("Years", fontsize=12)
-    plt.ylabel("Country Name", fontsize=12)
-    plt.xticks(fontsize=10, rotation=45)  # Rotate x-axis labels for readability
+    plt.title("Heatmap of Inflation Rates by Country", fontsize=16, pad=20)
+    plt.xlabel("Years", fontsize=12, labelpad=10)
+    plt.ylabel("Country Name", fontsize=12, labelpad=10)
+    plt.xticks(fontsize=10, rotation=45, ha='right')
     plt.yticks(fontsize=10, rotation=0)
+    plt.tight_layout()
     st.pyplot(plt)
 
 if st.checkbox("Tampilkan Line Chart"):
     st.write("Line Chart Tingkat Inflasi dari Waktu ke Waktu")
-    for country in analysis_data["country_name"].unique():
-        country_data = data[data["country_name"] == country]
-        plt.plot(year_columns, country_data[year_columns].values.flatten(), label=country,
-        linewidth=1.5,  # Adjust line width
-            alpha=0.8 
+    # Pilih negara yang ingin ditampilkan
+    countries = analysis_data["country_name"].unique().tolist()
+    selected_countries = st.multiselect("Pilih negara:", countries, default=countries[:5])  # Sebagai contoh default 5 negara pertama
+
+    # Filter data berdasarkan negara terpilih
+    filtered_data = analysis_data[analysis_data["country_name"].isin(selected_countries)]
+
+    plt.figure(figsize=(12, 6))
+    for country in filtered_data["country_name"].unique():
+        country_data = filtered_data[filtered_data["country_name"] == country][["country_name"] + selected_years].dropna()
+        plt.plot(
+            selected_years,
+            country_data[selected_years].values.flatten(),
+            label=country,
+            linewidth=1.5,
+            alpha=0.8
         )
     plt.legend(loc="upper left", bbox_to_anchor=(1, 1), fontsize=10, title="Countries")
-    plt.title("Tren Tingkat Inflasi Berdasarkan Negara", fontsize=16, pad=15)
+    plt.title("Tren Tingkat Inflasi Berdasarkan Negara (Berdasarkan Tahun Terpilih)", fontsize=16, pad=15)
     plt.xlabel("Tahun", fontsize=12)
     plt.ylabel("Tingkat Inflasi (%)", fontsize=12)
-    plt.xticks(fontsize=10, rotation=45)  # Rotate x-axis labels for better readability
+    plt.xticks(fontsize=10, rotation=45)
     plt.yticks(fontsize=10)
-    plt.grid(True, linestyle='--', alpha=0.5)  # Add grid lines
+    plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout() 
     st.pyplot(plt)
