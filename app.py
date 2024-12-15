@@ -102,16 +102,27 @@ if st.checkbox("Tampilkan Elbow Method"):
 # Visualization
 st.header("4. Data Visualization")
 if st.checkbox("Tampilkan Heatmap"):
+    # Opsi memilih negara yang ingin ditampilkan pada heatmap
+    countries = analysis_data["country_name"].unique().tolist()
+    selected_countries_heatmap = st.multiselect("Pilih negara untuk heatmap:", countries, default=countries[:10])  # Default 10 negara pertama
+
+    # Filter data untuk negara yang dipilih
+    if selected_countries_heatmap:
+        filtered_heatmap = analysis_data[analysis_data["country_name"].isin(selected_countries_heatmap)]
+    else:
+        filtered_heatmap = analysis_data
+
     st.write("Heatmap of Inflation Rates")
     plt.figure(figsize=(12, 10))
     sns.set(font_scale=0.8)  # Mengatur skala font global
     
-    heatmap_data = analysis_data[selected_years].set_index(analysis_data["country_name"])
+    heatmap_data = filtered_heatmap[selected_years].set_index(filtered_heatmap["country_name"])
     
+    # Jika data terlalu padat, pertimbangkan annot=False atau kurangi ukuran font
     sns.heatmap(
         heatmap_data,
         cmap="coolwarm",
-        annot=True,             # Jika terlalu ramai, Anda dapat ubah ke False
+        annot=True,             
         fmt=".2f",
         annot_kws={"size": 6},
         linewidths=0.5,
@@ -128,12 +139,12 @@ if st.checkbox("Tampilkan Heatmap"):
 
 if st.checkbox("Tampilkan Line Chart"):
     st.write("Line Chart Tingkat Inflasi dari Waktu ke Waktu")
-    # Pilih negara yang ingin ditampilkan
-    countries = analysis_data["country_name"].unique().tolist()
-    selected_countries = st.multiselect("Pilih negara:", countries, default=countries[:5])  # Sebagai contoh default 5 negara pertama
+    # Pilih negara yang ingin ditampilkan pada line chart
+    countries_line = analysis_data["country_name"].unique().tolist()
+    selected_countries_line = st.multiselect("Pilih negara:", countries_line, default=countries_line[:5])
 
     # Filter data berdasarkan negara terpilih
-    filtered_data = analysis_data[analysis_data["country_name"].isin(selected_countries)]
+    filtered_data = analysis_data[analysis_data["country_name"].isin(selected_countries_line)]
 
     plt.figure(figsize=(12, 6))
     for country in filtered_data["country_name"].unique():
